@@ -1,0 +1,6 @@
+**/*.ico
+**/*.png
+**/*.dockerignore
+**/*.prettierignore
+**/*.svg
+**/*.webp

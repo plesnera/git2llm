@@ -1,41 +1,36 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import math
 import glob
+import shutil
 import random as rnd
 from git import Repo
+from pathlib import Path
 from typing import List
 from src.git_file import GitFile
 from src.git_repo import GitRepo
 
 
 # helper function to create a unique temporary folder
-def _create_folder(temp_storage_path, repository: str):
-    folder = f"{temp_storage_path}/{str(hash(rnd.random()))}/{repository}"
-    os.mkdir(folder)
+def create_folder(temp_storage_path: Path, repository: str) -> Path:
+    folder = temp_storage_path / str(hash(rnd.random())) / Path(repository)
+    folder.mkdir(parents=True, exist_ok=True)
     return folder
 
 
-def _clone_repo(owner: str, repository: str, token: str, temp_storage_path: str = 'temp') -> str:
-    """
-    Takes an owner, repo and auth token for a GitHub repository ad.
-
-    Args:
-        owner (str): The owner of the GitHub repo.
-        repository (str): The GitHu Repository.
-        token (str): A personal access token for GitHu to ensure that private repos can be accessed.
-        temp_storage_path (str): The path on the file system where the repository should be cloned.
-    """
-    destination_path = _create_folder(temp_storage_path, repository)
+def clone_repo(owner: str, repository: str, token: str, temp_storage_path: Path = Path('temp')) -> Path:
+    destination_path = create_folder(temp_storage_path, repository)
     repo_url = f"https://{token}@github.com/{owner}/{repository}.git"
-    Repo.clone_from(repo_url, destination_path)
+    Repo.clone_from(repo_url, str(destination_path))
     return destination_path
 
 
-def _read_ignore_file(ignore_file_path: str) -> List[str]:
+def read_ignore_file(ignore_file_path: Path) -> List[str]:
     ignore_list = []
-    try:
-        with open(ignore_file_path, 'r') as file:
+    if ignore_file_path.is_file():
+        with ignore_file_path.open('r') as file:
             for line in file:
                 line = line.strip()
                 if line == '' or line.startswith('#'):
@@ -44,25 +39,23 @@ def _read_ignore_file(ignore_file_path: str) -> List[str]:
                     line = line + '**'
                 line = line.lstrip('/')
                 ignore_list.append(line)
-    except FileNotFoundError:
-        pass
     return ignore_list
 
 
-def _windows_to_unix_path(windows_path: str) -> str:
+def windows_to_unix_path(windows_path: str) -> str:
     return windows_path.replace('\\', '/')
 
 
-def _compile_ignore_patterns(repo_path: str, ignore_file_path: str = '', use_gitignore: bool = True) -> List[str]:
+def compile_ignore_patterns(repo_path: Path, ignore_file_path: Path, use_gitignore: bool) -> List[str]:
     if not ignore_file_path:
-        ignore_file_path = os.path.join(repo_path, '.gptignore')
+        ignore_file_path = repo_path / '.gptignore'
 
-    ignore_list = _read_ignore_file(ignore_file_path)
+    ignore_list = read_ignore_file(ignore_file_path)
     ignore_list.extend(['.git/**', '.gitignore'])
 
     if use_gitignore:
-        gitignore_path = os.path.join(repo_path, '.gitignore')
-        gitignore_list = _read_ignore_file(gitignore_path)
+        gitignore_path = repo_path / '.gitignore'
+        gitignore_list = read_ignore_file(gitignore_path)
         ignore_list.extend(gitignore_list)
 
     final_ignore_list = [
@@ -71,31 +64,29 @@ def _compile_ignore_patterns(repo_path: str, ignore_file_path: str = '', use_git
     return final_ignore_list
 
 
-def _estimate_tokens(output: str) -> int:
+def estimate_tokens(output: str) -> int:
     token_count = len(output) / 3.5  # Based on a rough ratio for GPT-4 of 3.5 tokens per character
     return math.ceil(token_count)
 
 
-def _process_file(file_path: str, repo: GitRepo) -> None:
-    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+def process_file(file_path: Path, repo_root: Path, repo: GitRepo) -> None:
+    with file_path.open('r', encoding='utf-8', errors='ignore') as file:
         contents = file.read()
-        # if is_valid_utf8(contents):
-        file = GitFile(path=file_path, tokens=_estimate_tokens(contents), contents=contents)
+        relative_path = file_path.relative_to(repo_root).as_posix()
+        file = GitFile(path=relative_path, tokens=estimate_tokens(contents), contents=contents)
         repo.files.append(file)
 
 
-def _process_repo(repo_path: str, files_to_ignore: List[str]) -> GitRepo:
-    repo = GitRepo(total_tokens=0, files=[], file_count=0)
-    for root, _, files in os.walk(repo_path):
-        for file_name in files:
-            file_path = os.path.join(root, file_name)
-            if file_path not in files_to_ignore:
-                _process_file(file_path, repo)
-    repo.file_count = len(repo.files)
-    return repo
+def process_repo(repo_path: Path, files_to_ignore: List[Path]) -> GitRepo:
+    repo_object = GitRepo(total_tokens=0, files=[], file_count=0)
+    for element in repo_path.rglob('*'):
+        if element.as_posix() not in files_to_ignore and element.is_file():
+            process_file(element, repo_path, repo_object)
+    repo_object.file_count = len(repo_object.files)
+    return repo_object
 
 
-def _output_git_repo(repo: GitRepo) -> str:
+def output_git_repo(repo: GitRepo) -> str:
     repo_builder = list()
     repo_builder.append("The following text is a Git repository with code."
                         "The structure of the text are sections that begin with ----, "
@@ -112,24 +103,24 @@ def _output_git_repo(repo: GitRepo) -> str:
 
     repo_builder.append("--END--")
     output = ''.join(repo_builder)
-    repo.total_tokens = _estimate_tokens(output)
+    repo.total_tokens = estimate_tokens(output)
     return output
 
 
-def _marshal_repo(git_repo: Repo) -> str:
+def marshal_repo(git_repo: Repo) -> str:
     try:
         return json.dumps(git_repo, default=lambda x: x.__dict__, indent=4)
     except Exception as e:
         raise ValueError(f"Error marshalling repo: {e}")
 
 
-def _produce_output(git_repo, output_json: bool = False, write_to_path: str = "") -> int:
+def produce_output(git_repo, output_json: bool = False, write_to_path: str = "") -> int:
     # converts the repo object into a text or json object
 
     if output_json:
-        repo_as_text = _marshal_repo(git_repo)
+        repo_as_text = marshal_repo(git_repo)
     else:
-        repo_as_text = _output_git_repo(git_repo)
+        repo_as_text = output_git_repo(git_repo)
 
     if write_to_path:
         # if output file exists, throw error
@@ -137,20 +128,19 @@ def _produce_output(git_repo, output_json: bool = False, write_to_path: str = ""
             f.write(repo_as_text)
     else:
         print(repo_as_text)
-    return _estimate_tokens(repo_as_text)
+    return estimate_tokens(repo_as_text)
 
 
-def _list_files_to_ignore_in_repo(ignore_list: List[str], repo_source_path: str):
-    unix_path = _windows_to_unix_path(repo_source_path)
+def list_files_to_ignore_in_repo(ignore_list: List[str], repo_source_path: Path):
     file_list = []
     for ignore_item in ignore_list:
-        matches = glob.glob(unix_path + '/' + ignore_item, recursive=True)
+        matches =repo_source_path.glob(ignore_item)
         for match in matches:
             if match:
                 file_list.append(match)
     return file_list
 
 
-def _remove_temp_repo(repo_path: str) -> None:
-    os.system(f"rm -rf {repo_path}")
+def remove_temp_repo(repo_path: Path) -> None:
+    shutil.rmtree(repo_path.parent)
     return
