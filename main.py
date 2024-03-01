@@ -10,7 +10,7 @@ def main(
     repo_name: str,
     token: str,
     local_storage: Path = Path("temp"),
-    additional_ignore_file: Path = Path(""),
+    additional_ignore_file: Path = Path(".gptignore"),
     use_gitignore: bool = True,
     output_json: bool = False,
     write_filepath: str = "",
@@ -24,7 +24,7 @@ def main(
          repo_name (str): The name of the GitHub repository.
          token (str): A personal access token for GitHub.
          local_storage (str, optional): The path where the repository should be cloned. Defaults to 'temp' in the repo where this code is running.
-         additional_ignore_file (str, optional): Path to an additional file specifying patterns to ignore. Defaults to ''.
+         additional_ignore_file (str, optional): Path to an optional file specifying patterns to ignore. Defaults to '.gptignore'.
          use_gitignore (bool, optional): If False, .gitignore files will be ignored. Defaults to True.
          output_json (bool, optional): If True, the output will be in JSON format. Defaults to False.
          write_filepath (str, optional): The filepath and name to write output to. If empty, output is printed to screen. Defaults to "".

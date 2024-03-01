@@ -22,11 +22,11 @@ You can also pass these parameters directly to the main() function in the script
 
 Additional optional parameters for the main() function include:
 * local_storage: The path on the file system where the repository should be cloned. Defaults to 'temp'.
-* additional_ignore_file: Path to an additional file specifying patterns to ignore. Defaults to ''.
-* ignore_gitignore: If True, .gitignore files will be ignored. Defaults to False.
+* additional_ignore_file: Path to an optional file specifying patterns to ignore. Defaults to '.gptignore' (missing file will be ignored).
+* use_gitignore: Defaults to True, so that gitignore is used to determine what to skip from extraction.
 * output_json: If True, the output will be in JSON format. Defaults to False.
 * write_filepath: The filepath and name to write output to. If empty, output is printed to screen.
-* yield_tokens_estimate: If True, the function will also estimate the number of tokens in the output. Defaults to False.
+* yield_tokens_estimate: If True, the total number of tokens will be printed to std out. Defaults to False.
   
   ### Dependencies
   The script requires the following Python packages:
