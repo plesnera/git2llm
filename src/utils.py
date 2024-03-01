@@ -3,7 +3,6 @@
 import os
 import json
 import math
-import glob
 import shutil
 import random as rnd
 from git import Repo
@@ -116,7 +115,6 @@ def marshal_repo(git_repo: Repo) -> str:
 
 def produce_output(git_repo, output_json: bool = False, write_to_path: str = "") -> int:
     # converts the repo object into a text or json object
-
     if output_json:
         repo_as_text = marshal_repo(git_repo)
     else:
@@ -134,7 +132,7 @@ def produce_output(git_repo, output_json: bool = False, write_to_path: str = "")
 def list_files_to_ignore_in_repo(ignore_list: List[str], repo_source_path: Path):
     file_list = []
     for ignore_item in ignore_list:
-        matches =repo_source_path.glob(ignore_item)
+        matches = repo_source_path.glob(ignore_item)
         for match in matches:
             if match:
                 file_list.append(match)

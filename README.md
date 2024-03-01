@@ -33,10 +33,11 @@ Additional optional parameters for the main() function include:
   * os
   * json
   * math
-  * glob
+  * shutil
   * random
   * git
   * dataclasses
   * typing
+  * pathlib
 
   Please ensure these are installed before running the script.
