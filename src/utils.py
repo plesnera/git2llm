@@ -46,11 +46,9 @@ def windows_to_unix_path(windows_path: str) -> str:
 
 
 def compile_ignore_patterns(repo_path: Path, ignore_file_path: Path, use_gitignore: bool) -> List[str]:
-    if not ignore_file_path:
-        ignore_file_path = repo_path / '.gptignore'
-
-    ignore_list = read_ignore_file(ignore_file_path)
-    ignore_list.extend(['.git/**', '.gitignore'])
+    ignore_list=[]
+    if ignore_file_path:
+        ignore_list = read_ignore_file(ignore_file_path)
 
     if use_gitignore:
         gitignore_path = repo_path / '.gitignore'
@@ -79,8 +77,9 @@ def process_file(file_path: Path, repo_root: Path, repo: GitRepo) -> None:
 def process_repo(repo_path: Path, files_to_ignore: List[Path]) -> GitRepo:
     repo_object = GitRepo(total_tokens=0, files=[], file_count=0)
     for element in repo_path.rglob('*'):
-        if element.as_posix() not in files_to_ignore and element.is_file():
-            process_file(element, repo_path, repo_object)
+        if element not in files_to_ignore:
+            if element.is_file():
+                process_file(element, repo_path, repo_object)
     repo_object.file_count = len(repo_object.files)
     return repo_object
 
@@ -132,7 +131,7 @@ def produce_output(git_repo, output_json: bool = False, write_to_path: str = "")
 def list_files_to_ignore_in_repo(ignore_list: List[str], repo_source_path: Path):
     file_list = []
     for ignore_item in ignore_list:
-        matches = repo_source_path.glob(ignore_item)
+        matches = repo_source_path.rglob(ignore_item)
         for match in matches:
             if match:
                 file_list.append(match)
