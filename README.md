@@ -35,7 +35,7 @@ python git2llm owner a_test_repo ghp_1234
 ```
 Any additional parameters are specified using double-dash/long-options style  
 ```bash
-python git2llm owner a_test_repo ghp_1234 --write_file_path location/to/my/output_file.txt --yield_token_estimate True
+python git2llm owner a_test_repo ghp_1234 --output_filepath location/to/my/output_file.txt --yield_token_estimate True --additional_ignore_file '.gptignore'
 ```
 When processing a repo that includes a lot of unwanted files using (and/or modifying) the .gptignore file included in this repo can
 be an easy way to avoid including .git and various binary files.
