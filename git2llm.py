@@ -17,8 +17,7 @@ def run(owner: str,
         ) -> None:
 
     # clones repository to local temp folder
-    # repo_path = clone_repo(owner=owner, repository=repo_name, token=token, temp_storage_path=temp_local_storage)
-    repo_path=Path('temp/1291545500072296960/play')
+    repo_path = clone_repo(owner=owner, repository=repo_name, token=token, temp_storage_path=temp_local_storage)
     # outputs a combined list of files to ignore looking for the .gitignore as well as an additional .gptignore file
     combine_ignore_lists = compile_ignore_patterns(repo_path=repo_path, ignore_file_path=additional_ignore_file, use_gitignore=use_gitignore)
     # returns a list object of any file in the repo matching the ignore criteria
