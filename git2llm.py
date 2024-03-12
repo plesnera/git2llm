@@ -27,7 +27,7 @@ def run(owner: str,
     # print output to screen or produce an output file with text or json and return a token count
     token_count = produce_output(git_repo_processed, output_json, output_filepath)
     # clean up and remove temp repo again
-    # remove_temp_repo(repo_path)
+    remove_temp_repo(repo_path)
     # prints a approximated token estimation
     if yield_token_estimate:
         print(token_count)
